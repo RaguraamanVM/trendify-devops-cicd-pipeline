@@ -18,39 +18,53 @@ stages {
 
     stage('Build Docker Image') {
         steps {
-            sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+            sh """
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+            """
         }
     }
 
     stage('Push Docker Image') {
         steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'dockerhub-creds',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-            )]) {
-                sh '''
-                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                docker push $IMAGE_NAME:$IMAGE_TAG
-                '''
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )
+            ]) {
+                sh """
+                    echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                """
             }
         }
     }
 
     stage('Deploy to EKS') {
         steps {
-            sh '''
-            export AWS_PAGER=""
+            sh """
+                export AWS_PAGER=""
 
-            aws eks update-kubeconfig \
-              --region ap-south-1 \
-              --name trend-eks
+                aws eks update-kubeconfig \
+                --region ${AWS_DEFAULT_REGION} \
+                --name trend-eks
 
-            kubectl rollout restart deployment/trend-app
+                kubectl rollout restart deployment/trend-app
 
-            kubectl rollout status deployment/trend-app
-            '''
+                kubectl rollout status deployment/trend-app --timeout=300s
+            """
         }
+    }
+}
+
+post {
+    success {
+        echo 'Pipeline completed successfully'
+    }
+
+    failure {
+        echo 'Pipeline failed'
     }
 }
 ```
