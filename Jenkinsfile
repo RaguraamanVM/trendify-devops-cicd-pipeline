@@ -1,39 +1,60 @@
 pipeline {
-    agent any
+agent any
 
-    environment {
-        IMAGE_NAME = "raguraaman/trend-app-proj2"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+```
+environment {
+    IMAGE_NAME = "raguraaman/trend-app-proj2"
+    IMAGE_TAG = "${BUILD_NUMBER}"
+    AWS_DEFAULT_REGION = "ap-south-1"
+}
+
+stages {
+
+    stage('Checkout') {
+        steps {
+            checkout scm
+        }
     }
 
-    stages {
+    stage('Build Docker Image') {
+        steps {
+            sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+        }
+    }
 
-        stage('Checkout') {
-            steps {
-                checkout scm
+    stage('Push Docker Image') {
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'dockerhub-creds',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )]) {
+                sh '''
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                docker push $IMAGE_NAME:$IMAGE_TAG
+                '''
             }
         }
+    }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
+    stage('Deploy to EKS') {
+        steps {
+            sh '''
+            export AWS_PAGER=""
 
-        stage('Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
+            aws eks update-kubeconfig \
+              --region ap-south-1 \
+              --name trend-eks
 
-                    sh '''
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push $IMAGE_NAME:$IMAGE_TAG
-                    '''
-                }
-            }
+            kubectl set image deployment/trend-app \
+              *=${IMAGE_NAME}:${IMAGE_TAG}
+
+            kubectl rollout status deployment/trend-app
+            '''
         }
     }
 }
+```
+
+}
+
