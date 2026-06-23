@@ -8,8 +8,8 @@
 node_modules/
 
 # Build
-dist/
-build/
+#dist/
+#build/
 
 # Environment
 .env
