@@ -40,23 +40,26 @@ stages {
             }
         }
     }
+    
 
     stage('Deploy to EKS') {
-    	steps {
-        	sh """
-            	export AWS_PAGER=""
+        steps {
+            sh """
+                set -e
+                export AWS_PAGER=""
 
-            	aws eks update-kubeconfig \
-            	--region ${AWS_DEFAULT_REGION} \
-           	--name trend-eks
+                aws eks update-kubeconfig \
+                   --region ${AWS_DEFAULT_REGION} \
+                   --name trend-eks
 
-            	kubectl set image deployment/trend-app \
-            	trend-app=raguraaman/trend-app-proj2:${BUILD_NUMBER}
+                kubectl set image deployment/trend-app \
+                   trend-app=${IMAGE_NAME}:${IMAGE_TAG}
 
-            	kubectl rollout status deployment/trend-app --timeout=300s
-        	"""
-    	}
-    }
+                kubectl rollout status deployment/trend-app --timeout=300s
+               """
+              }
+        }
+	
 }
 
 
