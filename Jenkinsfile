@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     IMAGE_NAME = "raguraaman/trend-app-proj2"
     IMAGE_TAG = "${BUILD_NUMBER}"
@@ -67,7 +67,7 @@ post {
         echo 'Pipeline failed'
     }
 }
-```
+
 
 }
 
