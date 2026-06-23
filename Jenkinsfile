@@ -46,8 +46,7 @@ stages {
               --region ap-south-1 \
               --name trend-eks
 
-            kubectl set image deployment/trend-app \
-              *=${IMAGE_NAME}:${IMAGE_TAG}
+            kubectl rollout restart deployment/trend-app
 
             kubectl rollout status deployment/trend-app
             '''
